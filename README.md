@@ -20,5 +20,4 @@ The structure of the directory contains:
 - ` model <- 1` for the Poisson model
 - ` model <- 2` for the Binomial model
 - ` model <- 3` for the Negative Binomial model.
-3. Other user-specified values include the number of MCMC iterations.
 
