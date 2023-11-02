@@ -15,10 +15,10 @@ The structure of the directory contains:
 2.  Now you can run the algorithm in the command line, with, for example,
 
   `Rscript snpslicemain.R model=3 nmcmc=10000 alpha=2`.
+
 3. You can also decide which model to use, by controlling the value of `model`.
   This is the codebook:
 - ` model <- 0` for the cat model
 - ` model <- 1` for the Poisson model
 - ` model <- 2` for the Binomial model
 - ` model <- 3` for the Negative Binomial model.
-
