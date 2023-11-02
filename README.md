@@ -12,7 +12,8 @@ The structure of the directory contains:
 
 ## Using the algorithmn.
 1. you need to specify a _prefix_ in `snpslicemain.R`. For example, setting `prefix <- "scenario1" ` on line 21 of  `snpslicemain.R`, the script will read `scenario1_read1.txt` and `scenario1_read0.txt` from the `inputata` directory.
-2.  Now you can run the algorithm in the command line, with, for example, 
+2.  Now you can run the algorithm in the command line, with, for example,
+
   `Rscript snpslicemain.R model=3 nmcmc=10000 alpha=2`.
 3. You can also decide which model to use, by controlling the value of `model`.
   This is the codebook:
