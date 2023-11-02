@@ -125,6 +125,6 @@ write.table(D, paste("output/", prefix, "_", model, "_D_nmcmc", nmcmc, "_gap", g
 
 ## save MCMC state to RData file (for warm starts)
 if(store_mcmc){
-  filename <- paste("output/mcmc_", prefix, "_", model, "_nmcmc", nmcmc, "_gap", gap, "_rep", rep,  ".RData", sep = "");
+  filename <- paste("mcmcRData/mcmc_", prefix, "_", model, "_nmcmc", nmcmc, "_gap", gap, "_rep", rep,  ".RData", sep = "");
   save(state, rho, alpha, e1, e2, model,r, y,  rep, prefix, file = filename);
 }
