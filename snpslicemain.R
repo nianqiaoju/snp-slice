@@ -8,24 +8,17 @@
 ## ???: nianqiao@purdue.edu
 
 ## set the correct working directory before using the code
-#
 # setwd()
 #
 ## import data -----
 rm(list = ls());
 ## input file name----
-prefix <- "2end_NAth4_l1";
-prefix <- "3end_sub"
-prefix <- "2end"
-# prefix <- "5end_sub"
-prefix <- "hivb_p7"
-# prefix <- "hiva_p1"
+prefix <- "inputdata/scenario2";
 ## model----
 # model <- 0 ## cat
 # model <- 1 ## "pois"
 # model <- 2 ## "bin";
 model <- 3 ## negbin
-model <- 4 ## joint-pois
 ## threshold to determine single infections
 threshold <- 0.001;
 ## parameters for the observation model
@@ -110,12 +103,12 @@ sink();
 
 ## save the final sample (MAP estimator)
 A <- map$A[,which(colSums(map$A) > 0)];
-write.table(A, paste("output_", prefix, "_", model, "_A_nmcmc", nmcmc, "_gap", gap, "_rep", rep, ".txt", sep = ""),
+write.table(A, paste("output/output_", prefix, "_", model, "_A_nmcmc", nmcmc, "_gap", gap, "_rep", rep, ".txt", sep = ""),
             append = FALSE, sep = "\t", row.names = FALSE, col.names = FALSE);
 D <- map$D[which(colSums(map$A) > 0),];
-write.table(D, paste("output_", prefix, "_", model, "_D_nmcmc", nmcmc, "_gap", gap, "_rep", rep, ".txt", sep = ""),
+write.table(D, paste("output/output_", prefix, "_", model, "_D_nmcmc", nmcmc, "_gap", gap, "_rep", rep, ".txt", sep = ""),
             append = FALSE, sep = "\t", row.names = FALSE, col.names = FALSE);
 
 ## save MCMC state to RData file (for warm starts)
-filename <- paste("mcmc_", prefix, "_", model, "_nmcmc", nmcmc, "_gap", gap, "_rep", rep,  ".RData", sep = "");
+filename <- paste("output/mcmc_", prefix, "_", model, "_nmcmc", nmcmc, "_gap", gap, "_rep", rep,  ".RData", sep = "");
 save(state, rho, alpha, e1, e2, model,r, y,  rep, prefix, file = filename);
