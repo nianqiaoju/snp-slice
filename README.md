@@ -2,7 +2,7 @@
 
 This repository contains the implementation of the SNP-Slice algorithm, which is a Bayesian nonparametric method to resolve multi-strain infections. You can find the motivation for this problem, a description of the algorithm, as well as our results in the Bioarxiv preprint titled **SNP-Slice Resolves Mixed Infections: Simultaneously Unveiling Strain Haplotypes and Linking Them to Hosts** (https://www.biorxiv.org/content/10.1101/2023.07.29.551098v2). 
 
-# Preparing your local directory to run SNP-Slice.
+## Preparing your local directory to run SNP-Slice.
 The structure of the directory contains:
 - snpslicemain.R (the main execution file).
 - inputdata/ (a directory to store input data files, named *prefix_read1.txt*, *prefix_read0.txt* and *prefix_cat.txt*.
