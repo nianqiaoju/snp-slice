@@ -1,1 +1,1 @@
-# snp-slice
+# Instructions for using the SNP-Slice package
