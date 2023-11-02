@@ -12,7 +12,8 @@ The structure of the directory contains:
 
 ## Using the algorithmn.
 1. you need to specify a _prefix_ in `snpslicemain.R`. For example, setting `prefix <- "scenario1" ` on line 21 of  `snpslicemain.R`, the script will read `scenario1_read1.txt` and `scenario1_read0.txt` from the `inputata` directory.
-2. You can also manually adjust which model to use, by controlling the value of `model'. This is the codebook:
+2. You can also manually adjust which model to use, by controlling the value of `model`.
+This is the codebook:
 ` model <- 0 ## cat
 model <- 1 ## "pois"
 model <- 2 ## "bin";
