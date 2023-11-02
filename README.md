@@ -14,9 +14,9 @@ The structure of the directory contains:
 1. you need to specify a _prefix_ in `snpslicemain.R`. For example, setting `prefix <- "scenario1" ` on line 21 of  `snpslicemain.R`, the script will read `scenario1_read1.txt` and `scenario1_read0.txt` from the `inputata` directory.
 2. You can also manually adjust which model to use, by controlling the value of `model`.
 This is the codebook:
-` model <- 0 ## cat
-model <- 1 ## "pois"
-model <- 2 ## "bin";
-model <- 3 ## negbin; `
+- ` model <- 0` for the cat model
+- ` model <- 1` for the Poisson model
+- ` model <- 2` for the Binomial model
+- ` model <- 3` for the Negative Binomial model
 4. 
 
