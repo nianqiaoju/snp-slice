@@ -18,7 +18,7 @@ rm(list = ls());
 ################# start of user determined values
 ################# 
 ## input file name----
-prefix <- "scenario1";
+prefix <- "example";
 inputdataname <- paste("inputdata/", prefix, sep = "");
 ## model----
 # model <- 0 ## cat
@@ -65,8 +65,8 @@ if(model == "cat"){
   r <- NA;
 }else{
   ## for pois and bin models
-  y <- as.matrix(read.delim(paste(prefix, "_read1.txt", sep = ""))[,-1]);
-  r <- as.matrix(read.delim(paste(prefix, "_read0.txt", sep = ""))[,-1]) + y;
+  y <- as.matrix(read.delim(paste(inputdataname, "_read1.txt", sep = ""))[,-1]);
+  r <- as.matrix(read.delim(paste(inputdataname, "_read0.txt", sep = ""))[,-1]) + y;
   N <- dim(y)[1];
   P <- dim(y)[2];
   rho <- sum(y, na.rm = T) / sum(r, na.rm = T);
