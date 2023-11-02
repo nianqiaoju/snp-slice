@@ -30,8 +30,8 @@ rho <- 0.5;
 alpha <- 2.6;
 ## mcmc parameters
 nmcmc <- 10000;
-gap <- 20; ## terminate the chain if lpost does not change in > gap steps
-burnin <- 0; ## this is the minimum number of MCMC iterations, default is 0.
+gap <- NA; ## terminate the chain if lpost does not change in > gap steps
+burnin <- 0; ## this is the minimum number of MCMC iterations, default is nmcmc/2; see line 47.
 rep <- 1;
 ## decide which information to store
 store_mcmc <- FALSE;
@@ -44,7 +44,7 @@ store_map <- TRUE;
 
 ## read values from command lind input
 invisible(eval(parse(text=commandArgs(TRUE))));
-if(is.na(burnin)) burnin <- floor(nmcmc / 2); ## default for burnin
+if(is.na(burnin)) burnin <- floor(nmcmc / 2); ## default for burnin is half of nmcmc
 ## threshold to determine single infections
 threshold <- 0.001;
 ## parameters for the observation model
