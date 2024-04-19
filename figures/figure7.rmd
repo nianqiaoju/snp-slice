@@ -1,0 +1,92 @@
+---
+title: "Figure 7"
+output:
+  html_document:
+    df_print: paged
+---
+
+Script to regenerate figure 7, the mean estimation errors for each host or site across runs of SS-NegBin and RM-Prop, with different percentage of hosts having low read counts.
+
+Load the data frame needed to generate the figures. 
+The data frame includes true and inferred MOI, heterozygosity and minor allele frequency for each host after merging identical strains, in 128 runs for each method under each scenario.
+
+The data frame moiError includes true and inferred MOI, heterozygosity for each host after merging identical strains, in 128 runs for each method under each scenario. The data frame af includes the corresponding true and inferred minor allele frequency.
+
+The columns of moiError represent task id (1-128), host id, true MOI, inferred MOI, true heterozygosity, inferred heterozygosity, error in MOI (inferred-true), and scenario of percentage of hosts with low read counts & method.
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(ggthemes)
+load("figure7.Rdata")
+head(moiError)
+```
+
+The columns of af represent task id (1-128), SNP site id, true minor allele frequency, inferred minor allele frequency, and scenario of percentage of hosts with low read counts & method.
+```{r message=FALSE, warning=FALSE}
+head(af)
+```
+
+Get means of MOI, heterozygosity and minor allele frequency for each host in each scenario across the 128 runs.
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+#Get means of MOI and heterozygosity for each host across the 128 runs
+moiErrorStat<- moiError%>%ungroup()%>%group_by(host,scenario)%>%
+  summarize(moiError = mean(error),hetError = mean(inferred_het-true_het))
+
+#Get mean of minor allele frequency for each site across the 128 runs
+afErrorStat<- af%>%ungroup()%>%group_by(site,scenario)%>%
+  summarize(afError = mean(inferred_freq-true_freq))
+```
+
+Rearrange the information to let percentage of hosts with low read counts and method into two columns.
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+moiErrorStat$pct<-"0%"
+moiErrorStat$pct[moiErrorStat$scenario %in% c("10% low & SS-NegBin","10% low & RM-Prop")]<-"10%"
+moiErrorStat$pct[moiErrorStat$scenario %in% c("25% low & SS-NegBin","25% low & RM-Prop")]<-"25%"
+moiErrorStat$pct[moiErrorStat$scenario %in% c("50% low & SS-NegBin","50% low & RM-Prop")]<-"50%"
+
+moiErrorStat$model<-"RM-Prop"
+moiErrorStat$model[moiErrorStat$scenario %in% c("0% low & SS-NegBin","10% low & SS-NegBin","25% low & SS-NegBin","50% low & SS-NegBin")]<-"SS-NegBin"
+
+
+afErrorStat$pct<-"0%"
+afErrorStat$pct[afErrorStat$scenario %in% c("10% low & SS-NegBin","10% low & RM-Prop")]<-"10%"
+afErrorStat$pct[afErrorStat$scenario %in% c("25% low & SS-NegBin","25% low & RM-Prop")]<-"25%"
+afErrorStat$pct[afErrorStat$scenario %in% c("50% low & SS-NegBin","50% low & RM-Prop")]<-"50%"
+
+afErrorStat$model<-"RM-Prop"
+afErrorStat$model[afErrorStat$scenario %in% c("0% low & SS-NegBin","10% low & SS-NegBin","25% low & SS-NegBin","50% low & SS-NegBin")]<-"SS-NegBin"
+```
+
+Reshape the two data frames into one combined data frame which enables facet plotting. The columns of the combined data frame will be: host id, scenario, percentage of hosts with low read counts, inference method, variable (MOI, allele frequency or heterozygosity), and mean value across the 128 runs.
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+library(reshape2)
+moiErrorlong<-melt(moiErrorStat,id.vars=c("host","scenario","pct","model"))
+afErrorlong<-melt(afErrorStat,id.vars=c("site","scenario","pct","model"))
+colnames(moiErrorlong)[1]<-"id"
+colnames(afErrorlong)[1]<-"id"
+combineError<-rbind(moiErrorlong,afErrorlong)
+combineError$variable<-factor(combineError$variable,levels=c("moiError","afError","hetError"),labels=c("MOI","Allele frequency","Heterozygosity"))
+combineError$model<-factor(combineError$model,levels=c("SS-NegBin","RM-Prop"))
+head(combineError)
+```
+
+Plotting figure 7.
+```{r fig.height=6, fig.width=14, message=FALSE, warning=FALSE}
+color<-c("SS-NegBin"="#D55E00","RM-Prop"="#0072B2")
+alphamanual<-c("0%"=0.7,"10%"=0.55,"25%"=0.4,"50%"=0.25)
+g_facet<-ggplot(combineError,aes(x=pct,y=value,color=model,alpha=pct))+theme_bw()+
+  geom_hline(yintercept = 0,linewidth=1.5,color="grey",lty=1)+
+  geom_boxplot(aes(fill=model,alpha=pct),position = position_dodge2(preserve = "single"))+
+  stat_boxplot(alpha=1,geom = "errorbar",position = position_dodge2(preserve = "single")) +
+  scale_color_manual(values=color)+scale_fill_manual(values=color)+scale_alpha_manual(values=alphamanual,guide='none')+
+  ylab("Mean estimation error\nfor each host or site")+
+  xlab("Percentage of hosts with 1/10 read counts")+labs(fill="Method",color="Method",alpha="Pct. of hosts with\n1/10 read counts")+
+  facet_wrap(~variable,scales="free_y")+
+  theme(strip.text.x = element_text(size=22,face="bold"),strip.text.y = element_text(size=22,face="bold"))+theme(panel.spacing.x = unit(2, "lines"))+
+  theme(plot.title=element_text(size=20,face="bold"), axis.text=element_text(size=20),
+        legend.title=element_text(size=20,face="bold"),legend.text=element_text(size=20),legend.background=element_blank(),
+        legend.key.height = unit(1, "cm"),legend.key.width = unit(1, "cm"),
+        axis.title=element_text(size=24,face="bold"),plot.background = element_blank(),
+        strip.background =element_rect(fill="grey50"),strip.text = element_text(colour = 'white'))
+g_facet
+```
+

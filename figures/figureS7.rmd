@@ -1,0 +1,44 @@
+---
+title: "Figure S7"
+output:
+  html_document:
+    df_print: paged
+---
+
+Script to regenerate figure S7, the comparison of MOI inferred by RM-Cat in 3 populations in Uganda with different values of maxCOI.
+
+Load the data frame needed to generate the figures. 
+The data frame includes inferred MOI from RM-Cat in 3 populations when setting maxCOI=15 and 25.
+
+The columns of large_cat represent host id, inferred MOI, parameter value of maxCOI, population (there are 2 columns because left_join was used when preparing the data frame), total count of rows in each population by each method, and the weight of each row (1/count, used in plotting fraction).
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(ggthemes)
+
+load("figureS7.Rdata")
+head(large_cat)
+```
+
+Plotting figure S7.
+```{r fig.height=6, fig.width=15, message=FALSE, warning=FALSE, paged.print=FALSE}
+large_cat$maxMOI=as.character(large_cat$maxMOI)
+color<-c("15"="#2196F3","25"="#009E73")
+
+#Get the median value of inferred MOI by both cases in each population
+med_cat <- large_cat %>% group_by(pop.x,maxMOI) %>% summarise(med = median(inferred_MOI))
+
+p<-ggplot(large_cat)+geom_bar(aes(weight=weight,x=factor(inferred_MOI),fill=maxMOI),position=position_dodge2(preserve="single"),alpha=0.7)+
+  theme_bw()+xlab("Inferred MOI")+ylab("Frequency")+theme_clean()+labs(fill="maxCOI",color="maxCOI")+
+  scale_x_discrete(labels = ~ ifelse(seq_along(.x) %% 2 == 1, .x, ""))+
+  scale_y_continuous(limits=c(0,0.6),breaks=seq(0.1,1,0.1))+theme(plot.title = element_text(hjust = 0.5))+
+  geom_segment(data=med_cat,aes(x=med,y=0,xend=med,yend=0.56,color=maxMOI),linetype=2,linewidth=1)+scale_fill_manual(values=color)+
+  geom_text(data=med_cat,aes(label = med,x=med,y=0.58,color=maxMOI),size=8,show.legend = F)+
+  theme(plot.title=element_text(size=28,face="bold"), axis.text=element_text(size=24),
+        axis.title=element_text(size=28,face="bold"),plot.background = element_blank(),legend.key.size = unit(1.5, "cm"),
+        legend.position = c(0.9,0.75),legend.title=element_text(size=24,face="bold"),legend.text=element_text(size=24),
+        strip.background =element_rect(fill="grey50"),strip.text = element_text(colour = 'white'))+scale_color_manual(values=color)+ 
+  facet_grid(~factor(pop.x,levels=c("Nagongera","Walukuba","Kihihi")),scales="free")+theme(strip.text.x = element_text(size=24,face="bold"),strip.text.y = element_text(size=24,face="bold"))+theme(panel.spacing.x = unit(2, "lines"))
+
+p
+```
+

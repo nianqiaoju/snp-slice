@@ -1,0 +1,121 @@
+---
+title: "Figure 4"
+output:
+  html_document:
+    df_print: paged
+---
+
+Script to regenerate figure 4, the mean estimation errors across runs of different methods for each host or site.
+
+Load the data frame needed to generate the figures. 
+The data frame moiError includes true and inferred MOI, heterozygosity for each host after merging identical strains, in 128 runs for each method under each scenario. The data frame af includes the corresponding true and inferred minor allele frequency.
+
+The columns of moiError represent task id (1-128), host id, true MOI, inferred MOI, true heterozygosity, inferred heterozygosity, error in MOI (inferred-true), scenario of transmission intensity, inference method, and class of input data (read counts or categorical data).
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(ggthemes)
+library(patchwork)
+library(cowplot)
+
+load("figure4_S1.Rdata")
+head(moiError)
+```
+
+The columns of af represent task id (1-128), SNP site id, true minor allele frequency, inferred minor allele frequency, scenario of transmission intensity, inference method, and class of input data (read counts or categorical data).
+```{r message=FALSE, warning=FALSE}
+head(af)
+```
+
+Get means of MOI, heterozygosity and minor allele frequency for each host in each method and scenario across the 128 runs.
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+#Get means of MOI and heterozygosity for each host across the 128 runs
+moiErrorStat<- moiError%>%ungroup()%>%group_by(host,method,scenario)%>%
+  summarize(moiError = mean(error),hetError = mean(inferred_het-true_het))
+
+# define different method categories
+moiErrorStat$methodCat <- ifelse(moiErrorStat$method %in% c("SS-NegBin","SS-Pois","SS-Bin","RM-Prop"),"Read Counts","Categorical")
+moiErrorStat$methodCat <- factor(moiErrorStat$methodCat,levels = c("Read Counts","Categorical"))
+
+#Get mean of minor allele frequency for each site across the 128 runs
+afErrorStat<- af%>%ungroup()%>%group_by(site,method,scenario)%>%
+  summarize(afError = mean(inferred_freq-true_freq))
+
+# define different method categories
+afErrorStat$methodCat <- ifelse(afErrorStat$method %in% c("SS-NegBin","SS-Pois","SS-Bin","RM-Prop"),"Read Counts","Categorical")
+afErrorStat$methodCat <- factor(afErrorStat$methodCat,levels = c("Read Counts","Categorical"))
+```
+
+Plotting figure 4.
+
+```{r fig.height=14, fig.width=12, message=FALSE, warning=FALSE, paged.print=FALSE}
+color<-c("SS-NegBin"="#D55E00","SS-Pois"="#E69F00","SS-Bin"="#F0E442","SS-Cat"="#CC79A7","RM-Prop"="#0072B2","RM-Cat"="#009E73")
+
+# MOI subplot
+p1<-ggplot(moiErrorStat,aes(methodCat,y=moiError,color=method))+
+  geom_hline(yintercept = 0,linewidth=1.5,color="grey")+
+  stat_boxplot(geom = "errorbar",position = position_dodge2(preserve = "single")) + 
+  geom_boxplot(aes(fill=method),alpha=0.3,position = position_dodge2(preserve = "single"))+
+  scale_color_manual(values=color)+
+  scale_fill_manual(values=color)+
+  facet_grid(~scenario)+
+  ylab("MOI estimation error,\nfor each host")+
+  xlab("")+
+  theme_cowplot()+
+  guides(color = guide_legend(nrow = 1))+
+  theme(legend.position = "top",
+        #legend.text = element_text(size=14)
+        panel.grid.major.y = element_line(linetype = "dotted",color="grey")
+  )+
+  theme(plot.tag=element_text(size=28),
+        plot.title=element_text(size=18,face="bold"), axis.text=element_text(size=18),
+        legend.title=element_text(size=18,face="bold"),legend.text=element_text(size=18),legend.background=element_blank(),
+        axis.title=element_text(size=18,face="bold"),plot.background = element_blank(),
+        strip.text.x = element_text(size=20,face="bold"),
+        strip.background =element_rect(fill="grey50"),strip.text = element_text(colour = 'white'))
+
+# Het subplot
+p2<-ggplot(moiErrorStat,aes(methodCat,y=hetError,color=method))+
+  geom_hline(yintercept = 0,linewidth=1.5,color="grey")+
+  stat_boxplot(geom = "errorbar",position = position_dodge2(preserve = "single")) + 
+  geom_boxplot(aes(fill=method),alpha=0.3,position = position_dodge2(preserve = "single"))+
+  scale_color_manual(values=color)+
+  scale_fill_manual(values=color)+
+  facet_grid(~scenario)+
+  ylab("Heterozygosity estimation\nerror, for each host")+
+  xlab("")+
+  theme_cowplot()+
+  theme(legend.position = "none",panel.grid.major.y = element_line(linetype = "dotted",color="grey"))+
+  theme(plot.tag=element_text(size=28),
+        plot.title=element_text(size=18,face="bold"), axis.text=element_text(size=18),
+        legend.title=element_text(size=18,face="bold"),legend.text=element_text(size=18),legend.background=element_blank(),
+        axis.title=element_text(size=18,face="bold"),plot.background = element_blank(),
+        strip.text.x = element_text(size=20,face="bold"),
+        strip.background =element_rect(fill="grey50"),strip.text = element_text(colour = 'white'))
+
+# MAF subplot
+p3<-ggplot(afErrorStat,aes(methodCat,y=afError,color=method))+
+  geom_hline(yintercept = 0,linewidth=1.5,color="grey",lty=1)+
+  stat_boxplot(geom = "errorbar",position = position_dodge2(preserve = "single")) + 
+  geom_boxplot(aes(fill=method),alpha=0.3,position = position_dodge2(preserve = "single"))+
+  scale_color_manual(values=color)+
+  scale_fill_manual(values=color)+
+  facet_grid(~scenario)+
+  ylab("AF estimation error,\nfor each site")+
+  xlab("")+
+  theme_cowplot()+
+  theme(legend.position = "none",panel.grid.major.y = element_line(linetype = "dotted",color="grey"))+
+  theme(plot.tag=element_text(size=28),
+        plot.title=element_text(size=18,face="bold"), axis.text=element_text(size=18),
+        legend.title=element_text(size=18,face="bold"),legend.text=element_text(size=18),legend.background=element_blank(),
+        axis.title=element_text(size=18,face="bold"),plot.background = element_blank(),
+        strip.text.x = element_text(size=20,face="bold"),
+        strip.background =element_rect(fill="grey50"),strip.text = element_text(colour = 'white'))
+
+
+
+
+# combine using patchwork with correct annotation.  
+fig<-p1/p3/p2+plot_annotation(tag_levels = 'a',tag_prefix = '(', tag_suffix = ')')
+fig  
+```
+

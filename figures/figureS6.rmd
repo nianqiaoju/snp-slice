@@ -1,0 +1,57 @@
+---
+title: "Figure S6"
+output:
+  html_document:
+    df_print: paged
+---
+
+Script to regenerate figure S6, relationship between error of MOI and fraction of minor allele dominated sites.
+
+Load the data frame needed to generate the figures.
+3 data frames for SS, RM-Prop and RM-Cat respectively.
+
+Columns in each data frame represent the information of fraction of minor and major allele dominated sites, MOI error, MOI relative error (error/true MOI) and inference method.
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(ggthemes)
+
+load("figureS6.Rdata")
+head(SS_all)
+head(MC_prop_all)
+head(MC_cat_all)
+```
+
+Take 5% sub-groups in each method to be ploted out as points, for better visualization.
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+nhost=200 #Number of hosts
+MCMC_rep=128 #Number of replicates in SNP-Slice and DEploid
+McCOIL_rep=128 #Number of replicates in McCOIL
+
+SS_sub<-as.data.frame(SS_all %>% group_by(method) %>% sample_n(round(nhost*MCMC_rep*0.05,0)))
+SS_sub<-SS_sub[!SS_sub$method %in% "SS-Cat",] #Remove SS-Cat. Only plot methods based on read counts
+MC_prop_sub<-as.data.frame(MC_prop_all %>% group_by(method) %>% sample_n(round(nhost*McCOIL_rep*0.05,0)))
+output_sub<-rbind(SS_sub,MC_prop_sub)
+```
+
+Plotting figure S6.
+```{r fig.height=6, fig.width=12, message=FALSE, warning=FALSE, paged.print=FALSE}
+color<-c("SS-NegBin"="#D55E00","SS-Pois"="#E69F00","SS-Bin"="#F0E442","SS-Cat"="#CC79A7","RM-Prop"="#0072B2","RM-Cat"="#009E73")
+output_sub$method<-factor(output_sub$method,levels=c("SS-NegBin","SS-Pois","SS-Bin","RM-Prop"))
+
+minor_MOI_prop<-ggplot(output_sub,aes(x=readminorrate,y=error,color=method))+theme_bw()+xlab("Fraction of sites with more minor allele")+ylab("Error in MOI")+theme_clean()+
+  geom_jitter(height=0.1,alpha=0.1)+
+  #scale_x_discrete(breaks=as.character(1:8),labels=paste(xtick_group,paste("(n=",MOI_prop_counts$count,")",sep=""),sep="\n") )+
+  theme(plot.title=element_text(size=24,face="bold"), axis.text=element_text(size=20),
+        axis.title=element_text(size=24,face="bold"), legend.title=element_text(size=20,face="bold"),plot.background = element_blank(),
+        legend.text=element_text(size=20),legend.position="none",legend.key = element_rect(fill='transparent'),
+        strip.background =element_rect(fill="grey50"),strip.text = element_text(colour = 'white'))+
+  #annotate(geom = "rect", xmin = 0.0, xmax = 0.55, ymin = -1.5, ymax = 1.5, fill = "grey", linetype=0, alpha = 0.3)+
+  geom_abline(slope=0,intercept=0,linetype="dashed")+scale_color_manual(values=color)+scale_fill_manual(values=color)+
+  scale_y_continuous(breaks=c(-11,-9,-7,-5,-3,-1,0,1,3,5,7,9,11))+
+  #scale_y_continuous(breaks=c(-9,-7,-5,-3,-1,0,1,3,5,7,9,11))+
+  geom_smooth(aes(fill=method))+
+  facet_grid(. ~ method)+theme(strip.text.x = element_text(size=24,face="bold"))
+
+minor_MOI_prop
+```
+

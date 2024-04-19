@@ -1,0 +1,84 @@
+---
+title: "Figure 10"
+output:
+  html_document:
+    df_print: paged
+---
+
+Script to regenerate figure 10, applying SS-NegBin to HIV data.
+
+Load the data frame needed to generate the figures. In the case of HIV, different rows in SS input file represent different time points.
+
+frame_het is the data frame recording heterozygosity values at each time point in the 128 runs for each patient.The columns represent task_id (1-128), time point, heterozygosity, patient id and variable name (het).
+```{r message=FALSE, warning=FALSE}
+#Script to regenerate figure 10, applying SS-NegBin to HIV data
+library(tidyverse)
+library(ggthemes)
+load("figure10.Rdata")
+head(frame_het)
+```
+
+vl is the data of viral load. The columns represent time point, viral load, patient id and variable name (Viral load).
+```{r message=FALSE, warning=FALSE}
+vl
+```
+
+frame_total includes the run with the lowest RMSE of MOI from averaged MOI across 128 runs (MOI calcluated after merging identical strains) for each patient and records the appearance of strains at each time point. The columns represent time point, strain id present at the specific time point and patient id.
+```{r message=FALSE, warning=FALSE}
+head(frame_total)
+```
+
+Function for plotting to show only integeres for axis labels
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+integer_breaks <- function(n = 5, ...) {
+  fxn <- function(x) {
+    breaks <- floor(pretty(x, n, ...))
+    names(breaks) <- attr(breaks, "labels")
+    breaks
+  }
+  return(fxn)
+}
+```
+
+Heterozygosity-viral load subplot
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+p_het<-ggplot(data=frame_het,aes(x=time,y=value))+geom_point(color="gray50",size=1)+geom_smooth(color="black",se=FALSE)+
+  geom_line(data=vl,aes(x=time,y=log10(value)/24),color="red",linewidth=1)+
+  geom_point(data=vl,aes(x=time,y=log10(value)/24),color="red",shape=17,size=3)+
+  theme_bw()+xlab("Years since infection")+ylab("Heterozygosity")+theme_bw()+
+  scale_x_continuous(breaks=integer_breaks())+
+  scale_y_continuous(limits=c(-0.01,0.305),sec.axis = sec_axis(trans=~.*24,breaks=c(0,2,4,6),labels=expression(10^0,10^2,10^4,10^6),name="Viral load (virions/ml)"))+
+  theme(plot.title=element_text(size=24,face="bold"), axis.text=element_text(size=20),
+        axis.title=element_text(size=24,face="bold"), legend.title=element_text(size=20,face="bold"),plot.background = element_blank(),
+        legend.text=element_text(size=20),legend.position="none",legend.key = element_rect(fill='transparent'))+
+  facet_grid(. ~ patient,scales="free")+
+  theme(axis.line.y.right = element_line(color = "red"), 
+        axis.ticks.y.right = element_line(color = "red"),
+        axis.text.y.right = element_text(color = "red"), 
+        axis.title.y.right = element_text(color = "red"))+
+  theme(strip.background = element_blank(),strip.text.x = element_blank())
+```
+
+Strain appearance subplot. Here the plotting code includes the secondary y axis to align two plots better.
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+p_strain<-ggplot(frame_total,aes(x=time,y=orderedstrain))+theme_bw()+geom_point()+geom_line(aes(x=time,y=orderedstrain,group=orderedstrain))+
+  xlab("")+ylab("Strain ID")+theme_clean()+theme_bw()+
+  scale_x_continuous(breaks=integer_breaks())+
+  scale_y_continuous(sec.axis = sec_axis(trans=~.*24,breaks=c(0,2,4,6),labels=expression(10^0,10^2,10^4,10^6),name="Viral load"))+
+  theme(plot.title=element_text(size=24,face="bold"), axis.text=element_text(size=20),
+        axis.title=element_text(size=24,face="bold"), legend.title=element_text(size=20,face="bold"),plot.background = element_blank(),
+        legend.text=element_text(size=20),legend.position="none",legend.key = element_rect(fill='transparent'))+
+  facet_grid(. ~ patient,scales="free")+
+  theme(axis.ticks.y.right = element_blank(),
+        axis.text.y.right = element_text(color = "white"), 
+        axis.title.y.right = element_text(color = "white"))+
+  theme(strip.text.x = element_text(size=24,face="bold"),strip.background =element_rect(fill="grey50"),
+        strip.text = element_text(colour = 'white'))+theme(axis.text.x = element_blank())
+```
+
+Combine into figure 10.
+```{r fig.height=10, fig.width=10, message=FALSE, warning=FALSE, paged.print=FALSE}
+library(gridExtra)
+grid.arrange(p_strain,p_het,nrow=2)
+```
+

@@ -1,0 +1,162 @@
+---
+title: "Figure 6, S4 and S5"
+output:
+  html_document:
+    df_print: paged
+---
+
+Script to regenerate figure 6, S4 and S5, the relationship between true strain abundance, inferred strain abundance and similarity in Scenario 2 (intermediate transmission).
+
+Load the data frame needed to generate the figures. 
+TI_large includes the relative abundance of each true strain and the similarity and relative abundance of best matched inferred strain in each scenario and method. It is ordered by true strain abundance from high to low.
+IT_large includes the relative abundance of each inferred strain and the similarity and relative abundance of best matched true strain in each scenario and method.
+Similar strains (similarity >= 92/96) have been merged in the haploid dictionary. Hierarchical clustering with complete linkage has been performed.
+
+The columns of TI_large represent task id (1-128), the similarity between each true strain and its best matched inferred strain, relative abundance of the best matched inferred strain, the index of true strain before hierarchical clustering, true strain relative abundance, rank of true strain in having the largest relative abundance, and inference method.
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(ggthemes)
+library(ggpubr)
+load("figure6_S4_S5.Rdata")
+MCMC_rep<-128
+head(TI_large)
+```
+
+The columns of IT_large represent task id (1-128), the similarity between inferred strain and its best matched true strain, relative abundance of the best matched true strain, the index of inferred strain before hierarchical clustering, inferred strain abundance in count numbers, inferred strain relative abundance, inference method (with inferred dictionary size as the number of strains).
+```{r message=FALSE, warning=FALSE}
+head(IT_large)
+
+```
+
+Take 5% sub-groups in each method to be ploted out as points, for better visualization.
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+TI_large_sub<-as.data.frame(TI_large %>% group_by(method) %>% sample_n(round(dim(TI_large)[1]/5*0.05,0)) )
+IT_large_sub<-as.data.frame(IT_large %>% group_by(method) %>% sample_n(round(n()*0.05,0)))
+```
+
+Getting dictionary size of true strains and the dictionary size of inferred strains for some of the methods focused in figure 6.
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+dict_size_true<-dim(TI_large)[1]/MCMC_rep/5 #True dictionary size; 5 methods in total
+dict_size_infer<-IT_large %>% group_by(method) %>% summarise(dict_size=n()/MCMC_rep) #Mean inferred dictionary size for each method
+dict_size_infer
+dict_size_neg<-round(dict_size_infer$dict_size[dict_size_infer$method=="SS-NegBin (size=57)"],0)
+dict_size_cat<-round(dict_size_infer$dict_size[dict_size_infer$method=="SS-Cat (size=39)"],0)
+dict_size_DE<-round(dict_size_infer$dict_size[dict_size_infer$method=="DEploid (size=216)"],0)
+```
+
+Define a range for low-abundance and high-abundance strains.
+For low abundance strains, we define them as the ones appearing only once in the matrix A. Here the maximum value of relative abundance of strains appearing only once is roughly 0.003, and the minimum relative abundance of strains appearing twice is 0.0033, so we define the threshold value as 0.0032.
+For high abundance strains, we define the threshold of relative abundance as 0.08, and we can see obvious differences between SS and DEploid later.
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+summary(IT_large_sub$freq[IT_large_sub$count==1])
+summary(IT_large_sub$freq[IT_large_sub$count==2])
+```
+
+Report and annotate the percentage of inferred strains in the 3 groups defined by the range for each method.
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+abun_range<-c(0.0032,0.08)
+pct_within<-IT_large %>% group_by(method) %>% summarise(f=length(intersect(which(freq>abun_range[1]),which(freq<abun_range[2])))/n())
+pct_within$x=0.016
+pct_within$y=0.45
+pct_within$pct=round(pct_within$f*100)
+
+pct_left<-IT_large %>% group_by(method) %>% summarise(f=length(which(freq<=abun_range[1]))/n())
+pct_left$x=0.0016
+pct_left$y=0.45
+pct_left$pct=round(pct_left$f*100)
+
+pct_right<-IT_large %>% group_by(method) %>% summarise(f=length(which(freq>=abun_range[2]))/n())
+pct_right$x=0.14
+pct_right$y=0.45
+pct_right$pct=100-pct_left$pct-pct_within$pct
+```
+
+True strain abundance and the percentage of true strains in the 3 groups.
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+truefreq<-TI_large$freq[TI_large$task_id==1 & TI_large$method=="SS-NegBin"]
+length(which(truefreq<=abun_range[1]))/length(truefreq)
+length(which(truefreq>=abun_range[2]))/length(truefreq)
+length(intersect(which(truefreq>abun_range[1]),which(truefreq<abun_range[2])))/length(truefreq)
+```
+
+Plot figure 6: the similarity score of inferred strains and the relationship of relative abundances between inferred strains and their best-matched true strains.
+Show SS-NegBin, SS-Cat and DEploid only
+```{r fig.height=6, fig.width=9, message=FALSE, warning=FALSE, paged.print=FALSE}
+p_IT_sub<-ggplot()+
+  geom_jitter(data=IT_large_sub[IT_large_sub$method %in% c(paste(c("SS-NegBin","SS-Cat","DEploid")," (size=",c(dict_size_neg,dict_size_cat,dict_size_DE),")",sep="")),],aes(x=freq,y=simi,color=log10(trueabun)),alpha=0.5,width=0.05,size=2)+
+  theme_bw()+xlab("Inferred strain relative abundance")+ylab("Similarity score")+theme_clean()+
+  scale_y_continuous(limits=c(0,1.05),breaks=seq(0,1,0.1))+theme(plot.title = element_text(hjust = 0.5))+
+  labs(color=paste("True strain\nrelative abundance\n(size=",dict_size_true,")",sep=""))+
+  geom_vline(xintercept=abun_range[2],linetype=2)+
+  geom_vline(xintercept=abun_range[1],linetype=2)+
+  geom_text(data = pct_within[pct_within$method %in% c(paste(c("SS-NegBin","SS-Cat","DEploid")," (size=",c(dict_size_neg,dict_size_cat,dict_size_DE),")",sep="")),],aes(x=x,y=y,label=paste(round(pct,0),"%",sep="")),size=4)+
+  geom_text(data = pct_left[pct_within$method %in% c(paste(c("SS-NegBin","SS-Cat","DEploid")," (size=",c(dict_size_neg,dict_size_cat,dict_size_DE),")",sep="")),],aes(x=x,y=y,label=paste(round(pct,0),"%",sep="")),size=4)+
+  geom_text(data = pct_right[pct_within$method %in% c(paste(c("SS-NegBin","SS-Cat","DEploid")," (size=",c(dict_size_neg,dict_size_cat,dict_size_DE),")",sep="")),],aes(x=x,y=y,label=paste(round(pct,0),"%",sep="")),size=4)+
+  geom_bracket(xmin = 0.001, xmax = abun_range[1]-0.0005, y.position = 0.48,label = "",size=0.5)+
+  geom_bracket(xmin = abun_range[1]+0.0005, xmax = abun_range[2]-0.01, y.position = 0.48,label = "",size=0.5)+
+  geom_bracket(xmin = abun_range[2]+0.01, xmax = 0.2, y.position = 0.48,label = "",size=0.5)+
+  theme(plot.title=element_text(size=20,face="bold"), axis.text.x=element_text(size=16,angle=45,vjust=0.5),axis.text.y = element_text(size=16),
+        axis.title=element_text(size=20,face="bold"),plot.background = element_blank(),
+        legend.position=c(0.358,0.18),legend.direction="horizontal",legend.title=element_text(size=14,face="bold"),
+        legend.text=element_text(size=11),legend.key.width = unit(1.04, "cm"),
+        strip.background =element_rect(fill="grey50"),strip.text = element_text(colour = 'white'),
+        plot.margin = margin(1, 1, 1, 1, "cm"),legend.margin=margin(0.3,0.3,0.3,0.3,"cm"),legend.spacing.x = unit(1, "cm"))+
+  scale_color_gradientn(colours = adjustcolor(c("#2166AC","#67A9CF","#D1E5F0","#FDDBC7","#EF8A62","#B2182B"),alpha=0.5),limits=c(log10(0.001),log10(0.2)),breaks=c(-3,log10(0.003),-2,log10(0.03),-1),labels=c(0.001,0.003,0.01,0.03,0.1))+
+  guides(colour = guide_colourbar(title.position="left", title.hjust = 0.5,ticks.colour="black"),
+         size = guide_legend(title.position="top", title.hjust = 0.5))+
+  scale_x_log10(breaks = c(0.001,0.003,0.01,0.03,0.1),limits=c(0.001,0.2))+annotation_logticks(sides="b")+
+  facet_grid(. ~ method)+theme(strip.text.x = element_text(size=15,face="bold"))+theme(panel.spacing.x = unit(2, "lines"))
+
+p_IT_sub
+```
+
+Plot figure S4: the similarity score of inferred strains and the relationship of relative abundances between inferred strains and their best-matched true strains.
+```{r fig.height=6, fig.width=14, message=FALSE, warning=FALSE, paged.print=FALSE}
+
+p_IT<-ggplot()+
+  geom_jitter(data=IT_large_sub,aes(x=freq,y=simi,color=log10(trueabun)),alpha=0.5,width=0.001,size=2)+
+  theme_bw()+xlab("Inferred strain relative abundance")+ylab("Similarity score")+theme_clean()+
+  scale_y_continuous(limits=c(0,1.05),breaks=seq(0,1,0.1))+theme(plot.title = element_text(hjust = 0.5))+
+  labs(color=paste("True strain\nrelative abundance\n(size=",dict_size_true,")",sep=""))+
+  geom_vline(xintercept=abun_range[2],linetype=2)+
+  geom_vline(xintercept=abun_range[1],linetype=2)+
+  geom_text(data = pct_within,aes(x=x,y=y,label=paste(round(pct,0),"%",sep="")),size=4)+
+  geom_text(data = pct_left,aes(x=x,y=y,label=paste(round(pct,0),"%",sep="")),size=4)+
+  geom_text(data = pct_right,aes(x=x,y=y,label=paste(round(pct,0),"%",sep="")),size=4)+
+  geom_bracket(xmin = 0.001, xmax = abun_range[1]-0.0005, y.position = 0.48,label = "",size=0.5)+
+  geom_bracket(xmin = abun_range[1]+0.0005, xmax = abun_range[2]-0.01, y.position = 0.48,label = "",size=0.5)+
+  geom_bracket(xmin = abun_range[2]+0.01, xmax = 0.2, y.position = 0.48,label = "",size=0.5)+
+  theme(plot.title=element_text(size=20,face="bold"), axis.text.x=element_text(size=16,angle=45,vjust=0.5),axis.text.y = element_text(size=16),
+        axis.title=element_text(size=20,face="bold"),plot.background = element_blank(),
+        legend.position=c(0.206,0.18),legend.direction="horizontal",legend.title=element_text(size=14,face="bold"),
+        legend.text=element_text(size=11),legend.key.width = unit(1, "cm"),
+        strip.background =element_rect(fill="grey50"),strip.text = element_text(colour = 'white'),
+        plot.margin = margin(1, 1, 1, 1, "cm"),legend.margin=margin(0.3,0.3,0.3,0.3,"cm"),legend.spacing.x = unit(1, "cm"))+
+  scale_color_gradientn(colours = adjustcolor(c("#2166AC","#67A9CF","#D1E5F0","#FDDBC7","#EF8A62","#B2182B"),alpha=0.5),limits=c(log10(0.001),log10(0.2)),breaks=c(-3,log10(0.003),-2,log10(0.03),-1),labels=c(0.001,0.003,0.01,0.03,0.1))+
+  guides(colour = guide_colourbar(title.position="left", title.hjust = 0.5,ticks.colour="black"))+
+  scale_x_log10(breaks = c(0.001,0.003,0.01,0.03,0.1),limits=c(0.001,0.2))+annotation_logticks(sides="b")+
+  facet_grid(. ~ method)+theme(strip.text.x = element_text(size=15,face="bold"))+theme(panel.spacing.x = unit(2, "lines"))
+p_IT
+```
+
+Plot figure S5: the recovery score of true strains and the relationship of relative abundances between true strains and their best-matched inferred strains.
+```{r fig.height=6, fig.width=14, message=FALSE, warning=FALSE, paged.print=FALSE}
+p_TI<-ggplot()+
+  geom_jitter(data=TI_large_sub,aes(x=freq,y=simi,color=log10(inferabun)),alpha=0.5,width=0.05,size=2)+
+  theme_bw()+xlab("True strain relative abundance")+ylab("Recovery score")+theme_clean()+
+  scale_y_continuous(limits=c(0,1.05),breaks=seq(0,1,0.1))+theme(plot.title = element_text(hjust = 0.5))+
+  labs(color="Inferred strain\nrelative abundance")+
+  theme(plot.title=element_text(size=20,face="bold"), axis.text.x=element_text(size=16,angle=45,vjust=0.5),axis.text.y = element_text(size=16),
+        axis.title=element_text(size=20,face="bold"),plot.background = element_blank(),
+        legend.position=c(0.206,0.18),legend.direction="horizontal",legend.title=element_text(size=14,face="bold"),
+        legend.text=element_text(size=11),legend.key.width = unit(1, "cm"),
+        strip.background =element_rect(fill="grey50"),strip.text = element_text(colour = 'white'),
+        plot.margin = margin(1, 1, 1, 1, "cm"),legend.margin=margin(0.3,0.3,0.3,0.3,"cm"),legend.spacing.x = unit(1, "cm"))+
+  scale_color_gradientn(colours = adjustcolor(c("#2166AC","#67A9CF","#D1E5F0","#FDDBC7","#EF8A62","#B2182B"),alpha=0.5),limits=c(log10(0.001),log10(0.2)),breaks=c(-3,log10(0.003),-2,log10(0.03),-1),labels=c(0.001,0.003,0.01,0.03,0.1))+
+  guides(colour = guide_colourbar(title.position="left", title.hjust = 0.5,ticks.colour="black"))+
+  scale_x_log10(breaks = c(0.001,0.003,0.01,0.03,0.1),limits=c(0.001,0.2))+annotation_logticks(sides="b")+
+  facet_grid(. ~ method)+theme(strip.text.x = element_text(size=15,face="bold"))+theme(panel.spacing.x = unit(2, "lines"))
+p_TI
+```
+

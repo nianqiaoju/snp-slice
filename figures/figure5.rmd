@@ -1,0 +1,118 @@
+---
+title: "Figure 5"
+output:
+  html_document:
+    df_print: paged
+---
+
+Script to regenerate figure 5, the haploid strain recovery accuracy.
+
+Load the data frame needed to generate the figures. 
+frame_TI includes the relative abundance of each true strain and the similarity of best matched inferred strain in each scenario and method. It is ordered by true strain abundance from high to low.
+frame_IT includes the relative abundance of each inferred strain and the similarity of best matched true strain in each scenario and method.
+Similar strains (similarity >= 92/96) have been merged in the haploid dictionary. Hierarchical clustering with complete linkage has been performed.
+
+The columns of frame_TI represent task id (1-128), the similarity between each true strain and its best matched inferred strain, the index of true strain before hierarchical clustering, true strain relative abundance, inference method, class of similarity (100%, 95%-100%, 90%-95%, 80%-90% and below 80%), and scenario of transmission intensity.
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(ggthemes)
+library(patchwork)
+library(cowplot)
+load("figure5.Rdata")
+head(frame_TI)
+```
+
+The columns of frame_IT represent task id (1-128), the similarity between inferred strain and its best matched true strain, the index of inferred strain before hierarchical clustering, inferred strain abundance in count numbers, inferred strain relative abundance, inference method, class of similarity (100%, 95%-100%, 90%-95%, 80%-90% and below 80%), and scenario of transmission intensity.
+
+
+```{r message=FALSE, warning=FALSE}
+head(frame_IT)
+```
+
+Figure 5(a): accuracy based on each true strain.
+Since we are going to draw the fraction of strains recovered to certain similarity levels, we need to turn the counts in column "class" by each method in each scenario into fraction. In each case, we do it by dividing the counts of each "class" by the total counts across all the "classes", which is indicated by the variable "weight".
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+frame<-frame_TI
+
+#Get the count of number of rows for each method and the weight of each row in the group of its specific method (used in plotting fraction)
+total<-as.data.frame(frame %>% group_by(scenario,method)  %>% summarise(total=n()))
+total$weight<-1/total$total
+
+frame<-left_join(frame,total,by=c("scenario","method"))
+frame$scenario<-factor(frame$scenario,levels = c("Scenario 1","Scenario 2","Scenario 3"), labels=c("Scenario1: low","Scenario2: mid","Scenario3: high"))
+frame$class<-as.character(frame$class)
+frame$class[which(frame$class=="90%-95%")]<-"90%-100%"
+frame$class[which(frame$class=="95%-100%")]<-"90%-100%"
+
+#Remove the rows with recovery score < 80%
+frame<-frame[frame$class!="Below 80%",]
+frame$class<-factor(frame$class,levels=c("80%-90%","90%-100%","100%"))
+frame$method<-factor(frame$method,levels=c("RM-Cat","SS-Cat","RM-Prop","SS-Bin","SS-Pois","SS-NegBin"))
+color<-c("SS-NegBin"="#D55E00","SS-Pois"="#E69F00","SS-Bin"="#F0E442","SS-Cat"="#CC79A7","RM-Prop"="#0072B2","RM-Cat"="#009E73")
+alphamanual<-c("80%-90%"=0.35,"90%-100%"=0.7,"100%"=1)
+
+
+g<-ggplot(frame)+geom_bar(aes(weight=weight,x=method,fill=method,alpha = class),color="black",width=0.8,position="stack")+xlab("Method")+ylab("Fraction of true strains\nrecovered to certain levels")+theme_classic()+
+  facet_wrap(. ~ scenario,ncol=1,strip.position = "left")+theme(strip.text.y = element_text(size=16,face="bold"))+
+  labs(alpha = "Accuracy level",fill="Method")+ guides(alpha = "none",fill = guide_legend(reverse = TRUE))+
+  theme(plot.title=element_text(size=16,face="bold"), axis.text=element_text(size=16),
+        axis.text.y=element_blank(),axis.ticks.y=element_blank(),axis.title.y=element_blank(),
+        legend.position = "right",legend.title=element_text(size=16,face="bold"),legend.text=element_text(size=16),legend.background=element_blank(),
+        axis.title=element_text(size=16,face="bold"),plot.background = element_blank(),
+        strip.background =element_rect(fill="grey50"),strip.text = element_text(colour = 'white'),
+        plot.tag.position = c(0.01, 1.03),plot.tag=element_text(size=16,face="bold"),
+        panel.grid.major.x = element_line(linetype = "dotted",color="grey"),
+        panel.spacing = unit(2, "lines"))+
+  scale_fill_manual(values=color)+scale_alpha_manual(values=alphamanual)+coord_flip(clip = 'off')+ #clip = 'off' keeps the annotations from disappearing
+  theme(plot.margin = unit(c(2,1,1,1), "cm"))
+
+annotate<-data.frame(y=c(0.8,0.5,0.2),x=c(4,4,4),scenario="Scenario1: low",label=c("80%-90%","90%-100%","100%"))
+accu<-data.frame(y=c(0.1),x=c(4),scenario="Scenario1: low",label=c("Accuracy level:"))
+g<-g+geom_text(data = annotate,aes(x=x,y=y,label=label,alpha=label),size=6,vjust=-3)+geom_text(data = accu,aes(x=x,y=y,label=label),size=6,vjust=-4.5)
+
+```
+
+Figure 5(b): accuracy based on each true strain
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+frame<-frame_IT
+
+total<-as.data.frame(frame %>% group_by(scenario,method)  %>% summarise(total=n()))
+total$weight<-1/total$total
+frame<-left_join(frame,total,by=c("scenario","method"))
+frame$scenario<-factor(frame$scenario,levels = c("Scenario 1","Scenario 2","Scenario 3"), labels=c("Scenario1: low","Scenario2: mid","Scenario3: high"))
+frame$class<-as.character(frame$class)
+frame$class[which(frame$class=="90%-95%")]<-"90%-100%"
+frame$class[which(frame$class=="95%-100%")]<-"90%-100%"
+frame<-frame[frame$class!="Below 80%",]
+frame$class<-factor(frame$class,levels=c("80%-90%","90%-100%","100%"))
+frame$method<-factor(frame$method,levels=c("RM-Cat","SS-Cat","RM-Prop","SS-Bin","SS-Pois","SS-NegBin"))
+
+g2<-ggplot(frame)+geom_bar(aes(weight=weight,x=method,fill=method,alpha = class),color="black",width=0.8,position="stack")+xlab("Method")+ylab("Fraction of inferred strains\nachieving certain similarity scores")+theme_classic()+
+  facet_wrap(. ~ scenario,ncol=1,strip.position = "left")+theme(strip.text.y = element_text(size=16,face="bold"))+
+  labs(alpha = "Accuracy level",fill="Method")+ guides(alpha = "none",fill = guide_legend(reverse = TRUE))+
+  theme(plot.title=element_text(size=16,face="bold"), axis.text=element_text(size=16),
+        axis.text.y=element_blank(),axis.ticks.y=element_blank(),axis.title.y=element_blank(),
+        legend.position = "right",legend.title=element_text(size=16,face="bold"),legend.text=element_text(size=16),legend.background=element_blank(),
+        axis.title=element_text(size=16,face="bold"),plot.background = element_blank(),
+        strip.background =element_rect(fill="grey50"),strip.text = element_text(colour = 'white'),
+        plot.tag.position = c(0.01, 1.03),plot.tag=element_text(size=16,face="bold"),
+        panel.grid.major.x = element_line(linetype = "dotted",color="grey"),
+        panel.spacing = unit(2, "lines"))+
+  scale_fill_manual(values=color)+scale_alpha_manual(values=alphamanual)+coord_flip(clip = 'off')+
+  theme(plot.margin = unit(c(2,1,1,1), "cm"))
+
+annotate2<-data.frame(y=c(0.8,0.5,0.2),x=c(4,4,4),scenario="Scenario1: low",label=c("80%-90%","90%-100%","100%"))
+accu2<-data.frame(y=c(0.1),x=c(4),scenario="Scenario1: low",label=c("Accuracy level:"))
+g2<-g2+geom_text(data = annotate2,aes(x=x,y=y,label=label,alpha=label),size=6,vjust=-3)+geom_text(data = accu2,aes(x=x,y=y,label=label),size=6,vjust=-4.5)
+
+```
+
+
+Combine into figure 5.
+```{r fig.height=10, fig.width=15, message=FALSE, warning=FALSE, paged.print=FALSE}
+fig<-g+g2+ plot_annotation(tag_levels = 'a',tag_prefix = '(', tag_suffix = ')')+plot_layout(guides = "collect")& theme(legend.position = 'bottom')
+fig
+```
+

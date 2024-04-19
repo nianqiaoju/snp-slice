@@ -1,0 +1,83 @@
+---
+title: "Figure2 and S2"
+output:
+  html_document:
+    df_print: paged
+---
+
+Script to regenerate figure 2 and S2, the accuracy of MOI estimation
+
+Load the data frame needed to generate the figures. 
+The data frame includes true and inferred MOI for each host after merging identical strains, in 128 runs for each method under each scenario.
+
+The columns of frame represent task id (1-128), host id, true MOI, inferred MOI, true heterozygosity, inferred heterozygosity, error in MOI (inferred-true), scenario of transmission intensity, inference method, and accuracy level (MOI correctly inferred, |MOI error| between 0 and 1, or |MOI error|>1).
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(ggthemes)
+
+load("figure2_S2.Rdata")
+head(frame)
+```
+
+Since we are going to draw the fraction of hosts with MOI recovered to certain levels, we need to turn the counts in column "acculevel" by each method in each scenario into fraction. In each case, we do it by dividing the counts of each "acculevel" by the total counts across all the "acculevels", which is indicated by the variable "weight".
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+#Get the count of number of rows for each method and the weight of each row in the group of its specific method (used in plotting fraction)
+total<-as.data.frame(frame %>% group_by(scenario,method)  %>% summarise(total=n()))
+total$weight<-1/total$total
+frame<-left_join(frame,total,by=c("scenario","method"))
+#Remove the rows with |MOI error| >1
+frame<-frame[frame$acculevel!="|Error|>1",]
+
+frame$method<-factor(frame$method,levels=c("RM-Cat","SS-Cat","RM-Prop","SS-Bin","SS-Pois","SS-NegBin"))
+color<-c("SS-NegBin"="#D55E00","SS-Pois"="#E69F00","SS-Bin"="#F0E442","SS-Cat"="#CC79A7","RM-Prop"="#0072B2","RM-Cat"="#009E73")
+
+```
+
+Plotting figure 2 (intermediate transmission scenario only).
+```{r fig.height=10, fig.width=12, message=FALSE, warning=FALSE, paged.print=FALSE}
+g2<-ggplot(frame[frame$scenario=="Scenario2: mid",])+geom_bar(aes(weight=weight,x=method,fill=method,alpha = acculevel),color="black",width=0.8,position="stack")+
+  xlab("Method")+ylab("Fraction of hosts with MOI recovered to certain levels")+theme_classic()+
+  facet_wrap(. ~ scenario,ncol=1,strip.position = "left")+theme(strip.text.y = element_text(size=24,face="bold"))+
+  labs(alpha = "Accuracy level",fill="Method")+ guides(alpha = "none",fill = guide_legend(reverse = TRUE))+
+  theme(plot.title=element_text(size=24,face="bold"), axis.text=element_text(size=24),
+        axis.text.y=element_blank(),axis.ticks.y=element_blank(),axis.title.y=element_blank(),
+        legend.position = "right",legend.title=element_text(size=24,face="bold"),legend.text=element_text(size=24),legend.background=element_blank(),
+        axis.title=element_text(size=24,face="bold"),plot.background = element_blank(),
+        strip.background =element_rect(fill="grey50"),strip.text = element_text(colour = 'white'),
+        panel.grid.major.x = element_line(linetype = "dotted",color="grey"),
+        panel.spacing = unit(2, "lines"))+
+  scale_fill_manual(values=color)+scale_alpha_manual(values=c("|Error|>1"=0.1,"0<|Error|<=1"=0.4,"Correct"=1))+coord_flip(clip='off')+
+  theme(plot.margin = unit(c(2.5,1,1,1), "cm"))
+
+#Top annotations
+annotate2<-data.frame(y=c(2/3,1/3),x=c(6,6),scenario="Scenario2: mid",label=c("0<|Error|<=1","Correct"))
+accu2<-data.frame(y=c(0.1),x=c(6),scenario="Scenario2: mid",label=c("Accuracy level:"))
+
+g2<-g2+geom_text(data = annotate2,aes(x=x,y=y,label=label,alpha=label),size=8,vjust=-2.5)+geom_text(data = accu2,aes(x=x,y=y,label=label),size=8,vjust=-4)
+g2
+```
+
+Plotting figure S2, for all three scenarios.
+```{r fig.height=25, fig.width=12, message=FALSE, warning=FALSE, paged.print=FALSE}
+gS<-ggplot(frame)+geom_bar(aes(weight=weight,x=method,fill=method,alpha = acculevel),color="black",width=0.8,position="stack")+
+  xlab("Method")+ylab("Fraction of hosts with MOI recovered to certain levels")+theme_classic()+
+  facet_wrap(. ~ scenario,ncol=1,strip.position = "left")+theme(strip.text.y = element_text(size=24,face="bold"))+
+  labs(alpha = "Accuracy level",fill="Method")+ guides(alpha = "none",fill = guide_legend(reverse = TRUE))+
+  theme(plot.title=element_text(size=24,face="bold"), axis.text=element_text(size=24),
+        axis.text.y=element_blank(),axis.ticks.y=element_blank(),axis.title.y=element_blank(),
+        legend.position = "right",legend.title=element_text(size=24,face="bold"),legend.text=element_text(size=24),legend.background=element_blank(),
+        axis.title=element_text(size=24,face="bold"),plot.background = element_blank(),
+        strip.background =element_rect(fill="grey50"),strip.text = element_text(colour = 'white'),
+        panel.grid.major.x = element_line(linetype = "dotted",color="grey"),
+        panel.spacing = unit(2, "lines"))+
+  scale_fill_manual(values=color)+scale_alpha_manual(values=c("|Error|>1"=0.1,"0<|Error|<=1"=0.4,"Correct"=1))+coord_flip(clip='off')+
+  theme(plot.margin = unit(c(2.5,1,1,1), "cm"))
+
+
+annotate<-data.frame(y=c(2/3,1/3),x=c(6,6),scenario="Scenario1: low",label=c("0<|Error|<=1","Correct"))
+accu<-data.frame(y=c(0.1),x=c(6),scenario="Scenario1: low",label=c("Accuracy level:"))
+
+gS<-gS+geom_text(data = annotate,aes(x=x,y=y,label=label,alpha=label),size=8,vjust=-2.5)+geom_text(data = accu,aes(x=x,y=y,label=label),size=8,vjust=-4)
+gS
+```
+
