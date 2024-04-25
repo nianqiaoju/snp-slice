@@ -1,0 +1,149 @@
+---
+title: "Figure 9"
+author: "Nianqiao Ju"
+date: "2024-04-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# library(patchwork)
+library(ggplot2)
+library(ggdendroplot)
+set.seed(2024)
+knitr::opts_chunk$set(echo = TRUE)
+rm(list = ls());
+set.seed(2024);
+bluefocus = c("#0033FF", "#252525", "#525252", "#737373", "#969696", "#BDBDBD", "#D9D9D9", "#F0F0F0")
+dark8equal = c("#1B9E77", "#666666", "#66A61E", "#7570B3", "#A6761D", "#D95F02", "#E6AB02", "#E7298A");
+tol9qualitative=c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#CC6677", "#882255", "#AA4499")
+tol6qualitative=c("#332288", "#88CCEE", "#117733", "#DDCC77", "#CC6677","#AA4499")
+tol7qualitative=c("#332288", "#88CCEE", "#44AA99", "#117733", "#DDCC77", "#CC6677","#AA4499")
+tol8qualitative=c("#332288", "#88CCEE", "#44AA99", "#117733", "#999933", "#DDCC77", "#CC6677","#AA4499")
+tol5qualitative=c("#332288", "#88CCEE", "#117733", "#DDCC77", "#CC6677")
+```
+
+
+
+First we load data and create subset of size $N = 48$ for visualization.
+```{r load data}
+load(file = "figure9.RData");
+size <- 48;
+subsetA <- function(A, size = 48){
+  if(dim(A)[1] > size){
+    ## select a random subset of hosts
+    A <- A[sample.int(dim(A)[1], size = size),];
+    ## order features by abundance, high to low (for plotting)
+    A <- A[, order(colSums(A), decreasing = T)];
+    ## keep active features only
+    A <- A[ , which(colSums(A) >= 1)];
+  }
+  return(A);
+}
+```
+
+
+## Nagonera
+```{r}
+## prepare A for hclust
+A1 <- subsetA(state1$A)
+kmin1 = dim(A1)[2];
+# ## rename the hosts and sites
+rownames(A1) <- paste0("host-", seq(dim(A1)[1]));
+colnames(A1) <- paste0("strain-", seq(dim(A1)[2]));
+rowclus <- hclust(dist(A1, method = "canberra"))
+hm1 <- hmReady(A1, rowclus = rowclus)
+hmplot1 <- ggplot() + geom_tile(data = hm1, aes( x= x, y = y, fill = as.factor(value)), col = "#BDBDBD") + 
+  theme_hm() + 
+  scale_fill_identity() + coord_fixed() + 
+  theme(legend.position = "none",
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(face = "bold", vjust = -4, size = 14),
+        axis.ticks.margin = unit(0, "cm"),
+        plot.title = element_text(size=14, face="bold.italic", hjust = 0.5))+
+  labs( y = "host") + 
+  guides(fill = guide_colourbar(label = FALSE,
+                                ticks = FALSE)) +
+  ggtitle("Nagongera") + 
+  geom_rect(aes(xmin = 0.5, xmax = kmin1 + 0.5, ymin = 0.5, ymax = dim(A1)[1]+0.5), fill = NA,
+            color = "black");
+# hmplot1
+
+hmplot1_ <- hmplot1 + geom_dendro(rowclus, 
+                               dendrocut = 36,
+                               # groupCols = colfunc(9),
+                               groupCols = tol9qualitative,
+                               xlim = c(kmin1 + 1, kmin1 + 20), size = 1, pointing = "side",
+                               axis.labels = F) + guides(label = FALSE, ticks = FALSE);
+
+print(hmplot1_)
+```
+
+## Walububa
+
+```{r}
+A2 <- subset(state2$A);
+kmin2 <- dim(A2)[2];
+rownames(A2) <- paste0("host-", seq(dim(A2)[1]));
+colnames(A2) <- paste0("strain-", seq(dim(A2)[2]));
+rowclus <- hclust(dist(A2, method = "canberra"));
+hm2 <- hmReady(A2, rowclus = rowclus);
+hmplot2 <- ggplot() + geom_tile(data = hm2, aes( x= x, y = y, fill = as.factor(value)), col = "#BDBDBD") + 
+  theme_hm() + 
+  scale_fill_identity() + coord_fixed() + 
+  theme(legend.position = "none",
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title.x = element_text(face = "bold", vjust = 5, size = 14),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size=14, face="bold.italic", hjust = 0.5))+
+  labs(x = "strain") + 
+  guides(fill = guide_colourbar(label = FALSE,
+                                ticks = FALSE)) +
+  ggtitle("Walukuba") + 
+  geom_rect(aes(xmin = 0.5, xmax = kmin2+0.5, ymin = 0.5, ymax = dim(A2)[1]+0.5), fill = NA,
+            color = "black");
+hmplot2_ <- hmplot2 + geom_dendro(rowclus, 
+                               dendrocut = 42,
+                               groupCols = tol7qualitative,
+                               xlim = c(kmin2 + 1, kmin2 +10), size = 1,  pointing = "side",
+                               axis.labels = F) + guides(label = FALSE, ticks = FALSE);
+
+print(hmplot2_)
+```
+
+## Kinihi
+
+```{r Kihini}
+A3 <- subsetA(state3$A);
+kmin3 <- dim(A3)[2];
+rownames(A3) <- paste0("host-", seq(dim(A3)[1]));
+colnames(A3) <- paste0("strain-", seq(dim(A3)[2]));
+rowclus <- hclust(dist(A3, method = "canberra"))
+hm3 <- hmReady(A3, rowclus = rowclus)
+hmplot3 <- ggplot() + geom_tile(data = hm3, aes( x= x, y = y, fill = as.factor(value)), col = "#BDBDBD") + 
+  theme_hm() + 
+  scale_fill_identity() + coord_fixed() + 
+  theme(legend.position = "none",
+        axis.text.x = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        plot.title = element_text(size=14, face="bold.italic", hjust = 0.5))+
+  guides(fill = guide_colourbar(label = FALSE,
+                                ticks = FALSE)) +
+  ggtitle("Kihini") + 
+  geom_rect(aes(xmin = 0.5, xmax = kmin3 + 0.5, ymin = 0.5, ymax = dim(A3)[1]+0.5), fill = NA, color = "black");
+hmplot3_ <- hmplot3 + geom_dendro(rowclus, 
+                               dendrocut = 36,
+                               groupCols = tol8qualitative,
+                               xlim = c(kmin3 + 1, kmin3 + 20), size = 1, pointing = "side",
+                               axis.labels = F) + guides(label = FALSE, ticks = FALSE);
+
+print(hmplot3_)
+```
+
