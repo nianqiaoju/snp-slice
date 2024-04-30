@@ -53,7 +53,7 @@ e2 <- 0.05;
 
 set.seed(rep);
 ## data processing-----
-model <- c("cat", "pois", "bin", "neg", "jpois")[model + 1];
+model <- c("cat", "pois", "bin", "neg")[model + 1];
 if(model == "cat"){
   dfy <- read.delim(paste(prefix, "_cat.txt", sep = ""));
   # remove individual id
